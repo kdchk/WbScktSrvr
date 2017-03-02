@@ -50,7 +50,6 @@ namespace WbScktSrvr
                         var buffer = new ArraySegment<Byte>(new Byte[20]); Console.WriteLine("3-var buffer: " + buffer); //initial value is 4096
 
                         //code below plays after "Send" in "Smart Websocket Client"
-
                         var received = await webSocket.ReceiveAsync(buffer, token); Console.WriteLine("4-var received: " + received);
 
                         switch (received.MessageType)
@@ -58,16 +57,13 @@ namespace WbScktSrvr
                             case WebSocketMessageType.Text:
 
                                 Console.WriteLine("5-case WebSocketMessageType.Text: ");
-                                Console.WriteLine("5.1 webSocket.State: ",webSocket.State);
                                 var request = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count);   Console.WriteLine("6-var request: " + request);
                                 Console.WriteLine("MESSAGE: "+ request);
-                                Console.WriteLine(token);
-                 
                                 var type = WebSocketMessageType.Text;    Console.WriteLine("7-var type: " + type);
                                 var data = Encoding.UTF8.GetBytes("Echo from server: " + request);   Console.WriteLine("8-var data: " + data);
                                 buffer = new ArraySegment<Byte>(data); Console.WriteLine("9-buffer: " + buffer);
                                 await webSocket.SendAsync(buffer, type, true, token);
-                                Console.WriteLine("10-switch (received.MessageType) ", webSocket.SendAsync(buffer, type, true, token));
+                                Console.WriteLine("10-switch (received.MessageType)");
                                 Console.WriteLine(" ");
                                 break;
                         }
