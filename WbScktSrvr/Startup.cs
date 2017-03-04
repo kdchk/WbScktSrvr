@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -36,27 +37,41 @@ namespace WbScktSrvr
 
                 if (http.WebSockets.IsWebSocketRequest)
                 {
-                    Console.WriteLine("Console says: Connected");
-                   
+                    Console.WriteLine("Console says: Client connected");
+
                     WebSocket webSocket = await http.WebSockets.AcceptWebSocketAsync();
 
                     while (webSocket.State == WebSocketState.Open)
                     {
                         var token = CancellationToken.None;
-                        var buffer = new ArraySegment<Byte>(new Byte[48]);
-                        var received = await webSocket.ReceiveAsync(buffer, token);
+                        var buffer = new ArraySegment<Byte>(new Byte[8192]);
 
-                        switch (received.MessageType)
+                        WebSocketReceiveResult result = null;
+
+                        using (var ms = new MemoryStream())
                         {
-                            case WebSocketMessageType.Text:
+                            do
+                            {
+                                result = await webSocket.ReceiveAsync(buffer, CancellationToken.None);
+                                ms.Write(buffer.Array, buffer.Offset, result.Count);
+                            }
+                            while (!result.EndOfMessage);
 
-                                var request = Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count);
-                                Console.WriteLine("MESSAGE: "+ request);
-                                var type = WebSocketMessageType.Text;
-                                var data = Encoding.UTF8.GetBytes("Echo from server: " + request);
-                                buffer = new ArraySegment<Byte>(data);
-                                await webSocket.SendAsync(buffer, type, true, token);
-                                break;
+                            ms.Seek(0, SeekOrigin.Begin);
+
+                            if (result.MessageType == WebSocketMessageType.Text)
+                            {
+                                using (var reader = new StreamReader(ms, Encoding.UTF8))
+                                {
+                                    var message = reader.ReadToEnd();
+                                    Console.WriteLine("MESSAGE: " + message);
+                                    
+                                    var type = WebSocketMessageType.Text;
+                                    var data = Encoding.UTF8.GetBytes("Echo from server: " + message);
+                                    buffer = new ArraySegment<Byte>(data);
+                                    await webSocket.SendAsync(buffer, type, true, token);
+                                }
+                            }
                         }
                     }
 
